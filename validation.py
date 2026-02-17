@@ -131,11 +131,24 @@ def validate_billing_email(billing_email: str) -> Tuple[str, str]:
 
     Requirements:
     - Normalize (strip + lowercase)
+    billing_email = billing_email.strip().lower()
+    
     - Max length 254
+    if len(billing_email) > 254:
+        return "", "Email is too long"
+    
     - Must match basic email pattern
+    if not EMAIL_BASIC_RE.match(billing_email):
+        return "", "Email format is invalid"
+
+    if normalized_email != billing_email:
+        return "", "Email normalization error"
+    else: 
+        return billing_email, ""
 
     Input:
         billing_email (str)
+        
 
     Returns:
         (normalized_email, error_message)
