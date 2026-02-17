@@ -197,48 +197,119 @@ if __name__ == "__main__":
         name_on_card="John O'Connor-Smith",
         billing_email="john.oconnor@example.com"
     ))
-    
-    print("\n--- Test 2: Invalid card number (too short) ---")
+    print("\n--- Test 2: Invalid card - too short ---")
     print(validate_payment_form(
-        card_number="4111 1111 111",
+        card_number="123456",
         exp_date="12/25",
         cvv="123",
-        name_on_card="John O'Connor-Smith",
-        billing_email="john.oconnor@example.com"
+        name_on_card="John Doe",
+        billing_email="john@example.com"
     ))
 
-    print("\n--- Test 3: Expired card ---")
+    print("\n--- Test 3: Invalid card - contains letters ---")
     print(validate_payment_form(
-        card_number="4111 1111 1111 1111",
-        exp_date="01/20",
+        card_number="4111-1111-1111-111A",
+        exp_date="12/25",
         cvv="123",
-        name_on_card="John O'Connor-Smith",
-        billing_email="john.oconnor@example.com"
+        name_on_card="John Doe",
+        billing_email="john@example.com"
     ))
 
-    print("\n--- Test 4: Invalid CVV (too short) ---")
+    print("\n--- Test 4: Invalid expiration - month 00 ---")
     print(validate_payment_form(
-        card_number="4111 1111 1111 1111",
+        card_number="4111111111111111",
+        exp_date="00/25",
+        cvv="123",
+        name_on_card="John Doe",
+        billing_email="john@example.com"
+    ))
+
+    print("\n--- Test 5: Invalid expiration - month 13 ---")
+    print(validate_payment_form(
+        card_number="4111111111111111",
+        exp_date="13/25",
+        cvv="123",
+        name_on_card="John Doe",
+        billing_email="john@example.com"
+    ))
+
+    print("\n--- Test 6: Invalid expiration - format without slash ---")
+    print(validate_payment_form(
+        card_number="4111111111111111",
+        exp_date="1229",
+        cvv="123",
+        name_on_card="John Doe",
+        billing_email="john@example.com"
+    ))
+
+    print("\n--- Test 7: Invalid CVV - too short ---")
+    print(validate_payment_form(
+        card_number="4111111111111111",
         exp_date="12/25",
         cvv="12",
-        name_on_card="John O'Connor-Smith",
-        billing_email="john.oconnor@example.com"
+        name_on_card="John Doe",
+        billing_email="john@example.com"
     ))
 
-    print("\n--- Test 5: Invalid email format ---")
+    print("\n--- Test 8: Invalid CVV - too long ---")
     print(validate_payment_form(
-        card_number="4111 1111 1111 1111",
+        card_number="4111111111111111",
         exp_date="12/25",
-        cvv="123",
-        name_on_card="John O'Connor-Smith",
-        billing_email="invalid.email@"
+        cvv="12345",
+        name_on_card="John Doe",
+        billing_email="john@example.com"
     ))
 
-    print("\n--- Test 6: Invalid name (too short) ---")
+    print("\n--- Test 9: Invalid email - missing domain ---")
     print(validate_payment_form(
-        card_number="4111 1111 1111 1111",
+        card_number="4111111111111111",
         exp_date="12/25",
         cvv="123",
-        name_on_card="J",
-        billing_email="john.oconnor@example.com"
+        name_on_card="John Doe",
+        billing_email="test@"
+    ))
+
+    print("\n--- Test 10: Invalid email - missing local part ---")
+    print(validate_payment_form(
+        card_number="4111111111111111",
+        exp_date="12/25",
+        cvv="123",
+        name_on_card="John Doe",
+        billing_email="@example.com"
+    ))
+
+    print("\n--- Test 11: Invalid name - contains number ---")
+    print(validate_payment_form(
+        card_number="4111111111111111",
+        exp_date="12/25",
+        cvv="123",
+        name_on_card="J0hn Doe",
+        billing_email="john@example.com"
+    ))
+
+    print("\n--- Test 12: Invalid name - too short ---")
+    print(validate_payment_form(
+        card_number="4111111111111111",
+        exp_date="12/25",
+        cvv="123",
+        name_on_card="A",
+        billing_email="john@example.com"
+    ))
+
+    print("\n--- Test 13: Valid card - Visa alternative ---")
+    print(validate_payment_form(
+        card_number="5500000000000004",
+        exp_date="12/29",
+        cvv="123",
+        name_on_card="Anne-Marie O'Connor",
+        billing_email="anne.marie@example.com"
+    ))
+
+    print("\n--- Test 14: Valid name - with apostrophe and hyphen ---")
+    print(validate_payment_form(
+        card_number="4111111111111111",
+        exp_date="12/25",
+        cvv="123",
+        name_on_card="Juan Pérez",
+        billing_email="juan@example.com"
     ))
