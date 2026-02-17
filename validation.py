@@ -26,10 +26,10 @@ from typing import Tuple, Dict
 
 
 CARD_DIGITS_RE = re.compile(r"[0-9]")     # digits only
-CVV_RE = re.compile(r"[0-9][0-9][0-9][0-9]")             # 3 or 4 digits
+CVV_RE = re.compile(r"[0-9]")             # 3 or 4 digits
 EXP_RE = re.compile(r"^[0-9][0-9]")             # MM/YY format
 EMAIL_BASIC_RE = re.compile(r"^[a-zA-Z0-9_@.\-]*$")     # basic email structure
-NAME_ALLOWED_RE = re.compile(r"[a-zA-z]*$")    # allowed name characters
+NAME_ALLOWED_RE = re.compile(r"[a-zA-Z]")    # allowed name characters
 
 
 # =============================
@@ -167,7 +167,7 @@ def validate_billing_email(billing_email: str) -> Tuple[str, str]:
 
     billing_email = unicodedata.normalize("NFKC", billing_email)
     billing_email = billing_email.strip().lower()
-    if len(billing_email) > 254:
+    if len(billing_email) > 254 or len(billing_email) == 0:
         return "", "Email no valido"
     if not EMAIL_BASIC_RE.match(billing_email):
         return "", "Email no valido"
@@ -191,11 +191,11 @@ def validate_name_on_card(name_on_card: str) -> Tuple[str, str]:
         (normalized_name, error_message)
     """
     # TODO: Implement validation
-    name_on_card = unicodedata.normalize("NFKC", name_on_card)
-    name_on_card = name_on_card.strip()
+    name_on_card = unicodedata.normalize("NFKC", name_on_card).strip()
     if len(name_on_card) < 2 or len(name_on_card) > 60:
         return "", "Nombre no valido"
     if not NAME_ALLOWED_RE.match(name_on_card):
+        print("RE sus")
         return "", "Nombre no valido"
     return f"{name_on_card}", ""
 
