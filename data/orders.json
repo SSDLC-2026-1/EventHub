@@ -17,5 +17,41 @@
       "name_on_card": "pepito",
       "billing_email": "test@tes.com"
     }
+  },
+  {
+    "id": 2,
+    "user_email": "PLACEHOLDER@EMAIL.COM",
+    "event_id": 6,
+    "event_title": "Rock Legends Live",
+    "qty": 1,
+    "unit_price": 95.0,
+    "service_fee": 5.0,
+    "total": 100.0,
+    "status": "PAID",
+    "created_at": "2026-02-17T22:29:08.137531",
+    "payment": {
+      "exp_date": "",
+      "name_on_card": "",
+      "billing_email": "",
+      "card": ""
+    }
+  },
+  {
+    "id": 3,
+    "user_email": "PLACEHOLDER@EMAIL.COM",
+    "event_id": 1,
+    "event_title": "Summer Music Fest",
+    "qty": 1,
+    "unit_price": 75.0,
+    "service_fee": 5.0,
+    "total": 80.0,
+    "status": "PAID",
+    "created_at": "2026-02-17T22:57:09.464624",
+    "payment": {
+      "exp_date": "",
+      "name_on_card": "",
+      "billing_email": "",
+      "card": ""
+    }
   }
 ]
