@@ -16,7 +16,7 @@ Where:
 
 import re
 import unicodedata
-from datetime import datetime
+from datetime import datetime, date
 from typing import Tuple, Dict
 
 
@@ -65,6 +65,15 @@ def luhn_is_valid(number: str) -> bool:
 # =============================
 
 def validate_card_number(card_number: str) -> Tuple[str, str]:
+    
+    card_number=normalize_basic(card_number)
+    card_number.replace(" ","").replace("-","")
+    if any(digit.isalpha() for digit in card_number):
+        return ("", "Card number must contain digits only")
+    if len(card_number)<=13 or len(card_number)>=19:
+        return ("", "card number length must be between 13 and 19")
+    return (card_number, "")
+
     """
     Validate credit card number.
 
@@ -90,6 +99,19 @@ def validate_card_number(card_number: str) -> Tuple[str, str]:
 
 
 def validate_exp_date(exp_date: str) -> Tuple[str, str]:
+    exp_date = normalize_basic(exp_date)
+    exp_date_list = exp_date.split("/")
+    if len(exp_date_list) != 2 or any(c.isalpha() for c in exp_date_list[0]) or any(c.isalpha() for c in exp_date_list[1]):
+        return ("", "format must be MM/YY")
+    if 1< int(exp_date_list[0]) > 12:
+        return ("", "Month must be beween 01 and 12")
+    if date.today().year[:2]>int(exp_date_list[1]):
+        return ("", "Card expired")
+    elif date.today().year[:2]==int(exp_date_list[1]) and date.today().month>int(exp_date_list[0]):
+        return ("", "Card expired")
+    
+    return ("exp_date","")
+
     """
     Validate expiration date.
 
