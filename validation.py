@@ -43,21 +43,25 @@ def normalize_basic(value: str) -> str:
     return unicodedata.normalize("NFKC", (value or "")).strip()
 
 
+
 def luhn_is_valid(number: str) -> bool:
-    """
-    ****BONUS IMPLEMENTATION****
+    
+    if not number.isdigit():
+        return False
+    
+    digits = [int(d) for d in number]
+    checksum = 0
+    reverse_digits = digits[::-1]
 
-    Validate credit card number using Luhn algorithm.
+    for i, d in enumerate(reverse_digits):
+            if i % 2 == 1:
+                d *= 2
+                if d > 9:
+                    d -= 9
+            checksum += d
 
-    Input:
-        number (str) -> digits only
+    return checksum % 10 == 0
 
-    Returns:
-        True if valid according to Luhn algorithm
-        False otherwise
-    """
-    # TODO: Implement Luhn algorithm
-    pass
 
 
 # =============================
@@ -69,24 +73,16 @@ def validate_card_number(card_number: str) -> Tuple[str, str]:
     Validate credit card number.
 
     Requirements:
-    - Normalize input
-    - Remove spaces and hyphens before validation
-    - Must contain digits only
-    - Length between 13 and 19 digits
-    - BONUS: Must pass Luhn algorithm
-
-    Input:
-        card_number (str)
-
-    Returns:
-        (card, error_message)
-
-    Notes:
-        - If invalid → return ("", "Error message")
-        - If valid → return (all credit card digits, "")
-    """
+    - Normalize input """
+   
+    if not luhn_is_valid(card_number):
+       return "", "Card number is not valid according to Luhn algorithm"
+    
+    
+    
     # TODO: Implement validation
-    return "", ""
+
+    return "",  ""
 
 
 def validate_exp_date(exp_date: str) -> Tuple[str, str]:
