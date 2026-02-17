@@ -85,10 +85,8 @@ def validate_card_number(card_number: str) -> Tuple[str, str]:
     card_number = unicodedata.normalize("NFKC", card_number)
     card_number = card_number.split()
     card_number = "".join(card_number)
-    print(card_number)
     card_number = card_number.split("-")
     card_number = "".join(card_number)
-    print(card_number)
     if not CARD_DIGITS_RE.match(card_number):
         return "", "Numero de tarjeta no valido"
     if len(card_number) >= 13 and len(card_number) <= 19:
@@ -113,8 +111,31 @@ def validate_exp_date(exp_date: str) -> Tuple[str, str]:
     Returns:
         (normalized_exp_date, error_message)
     """
-    # TODO: Implement validation
-    return "", ""
+    exp_date = unicodedata.normalize("NFKC", exp_date)
+    try:
+        exp_date = exp_date.split("/")
+        if len(exp_date) != 2:
+            return "", "Fecha de expiracion no valida"
+        for part in exp_date:
+            if len(part) != 2:
+                return "", "Fecha de expiracion no valida"
+            if not EXP_RE.match(part):
+                return "", "Fecha de expiracion no valida"
+        month = int(exp_date[0])
+        year = int(exp_date[1]) + 2000
+        if month < 1 or month > 12:
+            return "", "Fecha de expiracion no valida"
+        now = datetime.now()
+        if year < now.year or (year == now.year and month < now.month):
+            return "", "Fecha de expiracion no valida"
+        if year > now.year + 15:
+            return "", "Fecha de expiracion no valida"
+        else:
+            return f"{exp_date[0]}/{exp_date[1]}", ""
+    except AttributeError:
+        return "", "Fecha de expiracion no valida"
+    
+    
 
 
 def validate_cvv(cvv: str) -> Tuple[str, str]:
@@ -134,16 +155,12 @@ def validate_cvv(cvv: str) -> Tuple[str, str]:
         (always return empty clean value for security reasons)
     """
     # TODO: Implement validation
-    try:
-        for i in cvv:
-            a = int(i)
-    except: 
+    if not CVV_RE.match(cvv):
         return "", "CVV no valido"
 
     if len(cvv) == 3 or len(cvv) == 4:
         return "", ""
-    else:
-        return "", "CVV no valido"
+    return "", "CVV no valido"
 
 
 def validate_billing_email(billing_email: str) -> Tuple[str, str]:
