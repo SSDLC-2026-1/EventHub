@@ -94,10 +94,7 @@ def validate_card_number(card_number: str) -> Tuple[str, str]:
     card_number = card_number.split("-")
     card_number = "".join(card_number)
     print(card_number)
-    try:
-        for i in card_number:
-            a = int(i)
-    except:
+    if not CARD_DIGITS_RE.match(card_number):
         return "", "Numero de tarjeta no valido"
     if len(card_number) >= 13 and len(card_number) <= 19:
         return f"{card_number}", ""
