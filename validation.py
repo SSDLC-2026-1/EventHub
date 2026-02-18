@@ -132,6 +132,12 @@ def validate_exp_date(exp_date: str) -> Tuple[str, str]:
 
 
 def validate_cvv(cvv: str) -> Tuple[str, str]:
+    if any(c.isalpha() for c in cvv):
+        return ("","Must contain only digits")
+    if len(cvv)<3 or len(cvv)>4:
+        return ("", "Must be 3 or 4 digits")
+
+    return("","")    
     """
     Validate CVV.
 
@@ -152,6 +158,18 @@ def validate_cvv(cvv: str) -> Tuple[str, str]:
 
 
 def validate_billing_email(billing_email: str) -> Tuple[str, str]:
+    billing_email=normalize_basic(billing_email)
+    billing_email.lower()
+    list = billing_email.split("@")
+    if len(billing_email)>254:
+        return("", "Maximum length is 254")
+    if len(list) != 2 or list[0] == "" or list[1] == "":
+        return ("","email must follow the following format juan@prueba.com")
+
+    if len(list[1].split(".")) != 2:
+        return ("", "email must follow the following format juan@prueba.com")
+
+    return (billing_email, "")
     """
     Validate billing email.
 
@@ -171,6 +189,16 @@ def validate_billing_email(billing_email: str) -> Tuple[str, str]:
 
 
 def validate_name_on_card(name_on_card: str) -> Tuple[str, str]:
+    name_on_card=normalize_basic(name_on_card)
+    if len(name_on_card)<2 or len(name_on_card)>60:
+        return("", "Length must be between 2 and 60")
+    
+    if not (any(c.isalpha() or c =="-" or c =="'" or c ==" " for c in name_on_card)):
+        return ("", "Only letters (including accents), spaces, apostrophes, hyphens")
+    name_on_card.replace(" ","")
+
+    return (name_on_card, "")
+
     """
     Validate name on card.
 
