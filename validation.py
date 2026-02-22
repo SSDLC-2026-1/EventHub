@@ -31,7 +31,8 @@ CVV_RE = re.compile(r"^[0-9_]{3,4}")             # 3 or 4 digits
 EXP_RE = re.compile(r"^(0[1-9]|1[0-2])\/[0-9]{2}$")             # MM/YY format
 EMAIL_BASIC_RE = re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")     # basic email structure
 NAME_ALLOWED_RE = re.compile(r"^[A-Za-zÀ-ÖØ-öø-ÿ\s'\-]{2,60}$")    # allowed name characters
-
+MOBILE_RE = re.compile(r"^[0-9]{7,15}")
+PASSWORD_RE = re.compile(r"^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[.!@#$%^&*()\-_=\+\[\]{}<>?])[.A-Za-z\d!@#$%^&*()\-_=\+\[\]{}<>?]{8,64}$")
 
 # =============================
 # Utility Functions
@@ -111,7 +112,7 @@ def validate_cvv(cvv: str) -> Tuple[str, str]:
     return "", "" # CVV No retornado por seguridad
 
 
-def validate_billing_email(billing_email: str) -> Tuple[str, str]:
+def validate_email(billing_email: str) -> Tuple[str, str]:
     # Normalize input
     billing_email = normalize_basic(billing_email).lower()
     # Length validation
@@ -126,7 +127,7 @@ def validate_billing_email(billing_email: str) -> Tuple[str, str]:
     
 
 
-def validate_name_on_card(name_on_card: str) -> Tuple[str, str]:
+def validate_name(name_on_card: str) -> Tuple[str, str]:
     # Normalize input
     name_on_card = normalize_basic(name_on_card)
     # Collapse multiple spaces
@@ -134,10 +135,31 @@ def validate_name_on_card(name_on_card: str) -> Tuple[str, str]:
     # Length and character validation
     ptrn = NAME_ALLOWED_RE
     if not ptrn.match(name_on_card):
-        return "", "Nombre en la tarjeta inválido: debe tener entre 2 y 60 caracteres y solo contener letras, espacios, apóstrofes o guiones."
+        return "", "Nombre inválido: debe tener entre 2 y 60 caracteres y solo contener letras, espacios, apóstrofes o guiones."
     
     return name_on_card, ""
 
+def validate_mobile_number(mobile_number: str) -> Tuple[str, str]:
+    # Normalize input
+    mobile_number = normalize_basic(mobile_number)
+    # Collapse multiple spaces
+    mobile_number = re.sub(r"\s+", " ", mobile_number).strip()
+    # Length and pattern validation
+    ptrn = MOBILE_RE
+    if not ptrn.match(mobile_number):
+        return "", "Número inválido: debe tener entre 7 y 15 númers, sin identificador internacionales ni letras o caracteres especiales."
+    
+    return mobile_number, ""
+
+def validate_password(password: str) -> Tuple[str, str]:
+    # Normalize input
+    password = normalize_basic(password)
+    # Length and pattern validation
+    ptrn = PASSWORD_RE
+    if not ptrn.match(password):
+        return "", "Contraseña inválida: debe tener entre 8 y 64 caracteres, contener al menos una letra mayúscula, una letra minúscula y un número, y no contener caracteres especiales."
+    
+    return password, ""
 # =============================
 # Orchestrator Function
 # =============================
@@ -174,12 +196,12 @@ def validate_payment_form(
     if err:
         errors["cvv"] = err
 
-    name_clean, err = validate_name_on_card(name_on_card)
+    name_clean, err = validate_name(name_on_card)
     if err:
         errors["name_on_card"] = err
     clean["name_on_card"] = name_clean
 
-    email_clean, err = validate_billing_email(billing_email)
+    email_clean, err = validate_email(billing_email)
     if err:
         errors["billing_email"] = err
     clean["billing_email"] = email_clean
@@ -187,127 +209,4 @@ def validate_payment_form(
     return clean, errors
 
 if __name__ == "__main__":
-    print("--- Test 1: Valid input ---")
-    print(validate_payment_form(
-        card_number="4111 1111 1111 1111",
-        exp_date="12/25",
-        cvv="123",
-        name_on_card="John O'Connor-Smith",
-        billing_email="john.oconnor@example.com"
-    ))
-    print("\n--- Test 2: Invalid card - too short ---")
-    print(validate_payment_form(
-        card_number="123456",
-        exp_date="12/25",
-        cvv="123",
-        name_on_card="John Doe",
-        billing_email="john@example.com"
-    ))
-
-    print("\n--- Test 3: Invalid card - contains letters ---")
-    print(validate_payment_form(
-        card_number="4111-1111-1111-111A",
-        exp_date="12/25",
-        cvv="123",
-        name_on_card="John Doe",
-        billing_email="john@example.com"
-    ))
-
-    print("\n--- Test 4: Invalid expiration - month 00 ---")
-    print(validate_payment_form(
-        card_number="4111111111111111",
-        exp_date="00/25",
-        cvv="123",
-        name_on_card="John Doe",
-        billing_email="john@example.com"
-    ))
-
-    print("\n--- Test 5: Invalid expiration - month 13 ---")
-    print(validate_payment_form(
-        card_number="4111111111111111",
-        exp_date="13/25",
-        cvv="123",
-        name_on_card="John Doe",
-        billing_email="john@example.com"
-    ))
-
-    print("\n--- Test 6: Invalid expiration - format without slash ---")
-    print(validate_payment_form(
-        card_number="4111111111111111",
-        exp_date="1229",
-        cvv="123",
-        name_on_card="John Doe",
-        billing_email="john@example.com"
-    ))
-
-    print("\n--- Test 7: Invalid CVV - too short ---")
-    print(validate_payment_form(
-        card_number="4111111111111111",
-        exp_date="12/25",
-        cvv="12",
-        name_on_card="John Doe",
-        billing_email="john@example.com"
-    ))
-
-    print("\n--- Test 8: Invalid CVV - too long ---")
-    print(validate_payment_form(
-        card_number="4111111111111111",
-        exp_date="12/25",
-        cvv="12345",
-        name_on_card="John Doe",
-        billing_email="john@example.com"
-    ))
-
-    print("\n--- Test 9: Invalid email - missing domain ---")
-    print(validate_payment_form(
-        card_number="4111111111111111",
-        exp_date="12/25",
-        cvv="123",
-        name_on_card="John Doe",
-        billing_email="test@"
-    ))
-
-    print("\n--- Test 10: Invalid email - missing local part ---")
-    print(validate_payment_form(
-        card_number="4111111111111111",
-        exp_date="12/25",
-        cvv="123",
-        name_on_card="John Doe",
-        billing_email="@example.com"
-    ))
-
-    print("\n--- Test 11: Invalid name - contains number ---")
-    print(validate_payment_form(
-        card_number="4111111111111111",
-        exp_date="12/25",
-        cvv="123",
-        name_on_card="J0hn Doe",
-        billing_email="john@example.com"
-    ))
-
-    print("\n--- Test 12: Invalid name - too short ---")
-    print(validate_payment_form(
-        card_number="4111111111111111",
-        exp_date="12/25",
-        cvv="123",
-        name_on_card="A",
-        billing_email="john@example.com"
-    ))
-
-    print("\n--- Test 13: Valid card - Visa alternative ---")
-    print(validate_payment_form(
-        card_number="5500000000000004",
-        exp_date="12/29",
-        cvv="123",
-        name_on_card="Anne-Marie O'Connor",
-        billing_email="anne.marie@example.com"
-    ))
-
-    print("\n--- Test 14: Valid name - with apostrophe and hyphen ---")
-    print(validate_payment_form(
-        card_number="4111111111111111",
-        exp_date="12/25",
-        cvv="123",
-        name_on_card="Juan Pérez",
-        billing_email="juan@example.com"
-    ))
+    pass

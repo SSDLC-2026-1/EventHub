@@ -8,12 +8,21 @@
     "role": "admin",
     "status": "active"
   },
-    {
+  {
     "id": 2,
     "full_name": "pepito",
     "email": "test3@tes.com",
     "phone": "3001111112",
     "password": "aaa114",
+    "role": "user",
+    "status": "active"
+  },
+  {
+    "id": 3,
+    "full_name": "JuannnnnAAAAAAAAAA",
+    "email": "juan.castrillon@urosario.edu.co",
+    "phone": "3112691163",
+    "password": "qwe",
     "role": "user",
     "status": "active"
   }
