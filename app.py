@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from typing import List, Optional, Dict
+from functools import wraps
 
 from flask import Flask, render_template, request, abort, url_for, redirect, session
 from pathlib import Path
@@ -50,6 +51,13 @@ def get_current_user() -> Optional[dict]:
         return None
     return find_user_by_email(email)
 
+def require_login(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if "user_email" not in session:
+            return redirect(url_for("login"))
+        return f(*args, **kwargs)
+    return decorated_function
 
 
 def load_events() -> List[Event]:
@@ -307,6 +315,7 @@ def register():
     return redirect(url_for("login", registered="1"))
 
 @app.get("/dashboard")
+@require_login
 def dashboard():
 
 
@@ -315,6 +324,7 @@ def dashboard():
     return render_template("dashboard.html", user_name=(user.get("full_name") if user else "User"), paid=paid)
 
 @app.route("/checkout/<int:event_id>", methods=["GET", "POST"])
+@require_login
 def checkout(event_id: int):
 
 
@@ -394,6 +404,7 @@ def checkout(event_id: int):
 
 
 @app.route("/profile", methods=["GET", "POST"])
+@require_login
 def profile():
  
 
@@ -445,6 +456,10 @@ def profile():
     )
 @app.get("/admin/users")
 def admin_users():
+
+    user = get_current_user()
+    if not user or user.get("role") != "admin":
+        abort(403)
 
     q = (request.args.get("q") or "").strip().lower()
     role = (request.args.get("role") or "all").strip().lower()
