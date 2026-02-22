@@ -154,10 +154,16 @@ def validate_mobile_number(mobile_number: str) -> Tuple[str, str]:
 def validate_password(password: str) -> Tuple[str, str]:
     # Normalize input
     password = normalize_basic(password)
-    # Length and pattern validation
+    # Length validation
+    if len(password) < 8 or len(password) > 64:
+        return "", "Contraseña inválida: debe tener entre 8 y 64 caracteres."
+    # No spaces
+    if ' ' in password:
+        return "", "Contraseña inválida: no debe contener espacios."
+    # Pattern validation (at least 1 upper, 1 lower, 1 digit, 1 special)
     ptrn = PASSWORD_RE
     if not ptrn.match(password):
-        return "", "Contraseña inválida: debe tener entre 8 y 64 caracteres, contener al menos una letra mayúscula, una letra minúscula y un número, y no contener caracteres especiales."
+        return "", "Contraseña inválida: debe contener al menos una mayúscula, una minúscula, un número y un carácter especial."
     
     return password, ""
 # =============================

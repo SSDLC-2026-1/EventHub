@@ -500,19 +500,20 @@ def profile():
         current_password = request.form.get("current_password", "")
         new_password = request.form.get("new_password", "")
         confirm_new_password = request.form.get("confirm_new_password", "")
-        if new_password:  # solo si intenta cambiar
+        if new_password:
             if not current_password:
                 field_errors["current_password"] = "Current password is required."
-            elif current_password != user.get("password", ""):
-                field_errors["current_password"] = "Current password is incorrect."
             else:
                 validated_new_password, err = validate_password(new_password)
                 if err:
                     field_errors["new_password"] = "Password is not in a valid format."
                 elif new_password != confirm_new_password:
                     field_errors["confirm_new_password"] = "Passwords do not match."
+                elif current_password != user.get("password", ""):
+                    field_errors["current_password"] = "Current password is incorrect."
                 else:
                     new_password = validated_new_password
+                    
         print(field_errors)
         if field_errors:
             form["full_name"] = full_name
