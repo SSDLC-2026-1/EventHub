@@ -190,6 +190,45 @@ def validate_login_input(email: str, password: str) -> Tuple[Dict, Dict]:
 
     return clean, errors
 
+# ==================================================
+# Role-Based Access Control (RBAC)
+# ==================================================
+
+ROLES = {"admin", "user"}
+
+ROLE_PERMISSIONS = {
+    "admin": {
+        "view_admin_panel",
+        "toggle_user_status",
+        "change_user_role",
+    },
+    "user": set(),
+}
+def validate_role(role: str) -> Tuple[str, str]:
+    role = normalize_basic(role).lower()
+    if role not in ROLES:
+        return "", "Invalid role"
+    return role, ""
+
+
+def has_role(user: Dict, required_role: str) -> bool:
+    if not user:
+        return False
+    role = (user.get("role") or "").lower()
+    return role == required_role.lower()
+
+
+def has_permission(user: Dict, permission: str) -> bool:
+    if not user:
+        return False
+
+    role = (user.get("role") or "user").lower()
+
+    if role not in ROLE_PERMISSIONS:
+        return False
+
+    return permission in ROLE_PERMISSIONS[role]
+
 # =============================
 # Orchestrator Function
 # =============================
