@@ -18,9 +18,6 @@ import hashlib
 import os
 import hmac
 
-# ==========================================================
-# AES-GCM (requiere pip install pycryptodome)
-# ==========================================================
 
 def encrypt_aes(texto, clave):
     """
@@ -62,18 +59,18 @@ def decrypt_aes(texto_cifrado_hex, nonce_hex, tag_hex, clave):
     """
 
     # TODO: Implementar conversión de hex a bytes
+    texto_cifrado_bytes = bytes.fromhex(texto_cifrado_hex)
+    nonce_bytes = bytes.fromhex(nonce_hex)
+    tag_bytes = bytes.fromhex(tag_hex)
 
     # TODO: Crear objeto AES con nonce
+    cipher = AES.new(clave, AES.MODE_EAX, nonce=nonce_bytes)
 
     # TODO: Usar decrypt_and_verify
+    texto_descifrado_bytes = cipher.decrypt_and_verify(texto_cifrado_bytes, tag_bytes)
 
     # TODO: Convertir resultado a string y retornar
-
-    pass
-
-# ==========================================================
-# PASSWORD HASHING (PBKDF2 - SHA256)
-# ==========================================================
+    return texto_descifrado_bytes.decode('utf-8')
 
 
 def hash_password(password):
@@ -101,12 +98,23 @@ def hash_password(password):
     """
 
     # TODO: Generar salt aleatoria
-
+    salt = os.urandom(16)  # También podrías usar get_random_bytes(16)
+    
     # TODO: Derivar clave usando pbkdf2_hmac
-
+    iterations = 200000
+    key_length = 32
+    
+    # Convertir la contraseña a bytes y derivar la clave
+    password_bytes = password.encode('utf-8')
+    key = hashlib.pbkdf2_hmac('sha256', password_bytes, salt, iterations, dklen=key_length)
+    
     # TODO: Retornar diccionario con salt y hash en formato hex
-
-    pass
+    return {
+        "algorithm": "pbkdf2_sha256",
+        "iterations": iterations,
+        "salt": salt.hex(),
+        "hash": key.hex()
+    }
 
 
 
@@ -133,12 +141,30 @@ def verify_password(password, stored_data):
     """
 
     # TODO: Extraer salt e iterations
-
+    salt_hex = stored_data.get("salt")
+    iterations = stored_data.get("iterations")
+    original_hash_hex = stored_data.get("hash")
+    
+    # Convertir salt de hex a bytes
+    salt_bytes = bytes.fromhex(salt_hex)
+    
     # TODO: Recalcular hash
-
+    password_bytes = password.encode('utf-8')
+    key_length = 32  # Debería coincidir con el usado en hash_password
+    
+    recalculated_key = hashlib.pbkdf2_hmac(
+        'sha256', 
+        password_bytes, 
+        salt_bytes, 
+        iterations, 
+        dklen=key_length
+    )
+    
+    # Convertir el hash original de hex a bytes
+    original_hash_bytes = bytes.fromhex(original_hash_hex)
+    
     # TODO: Comparar con compare_digest
-
-    pass
+    return hmac.compare_digest(recalculated_key, original_hash_bytes)
 
 
 
@@ -156,8 +182,8 @@ if __name__ == "__main__":
     print("Tag:", tag)
 
     # Cuando implementen decrypt_aes, esto debe funcionar
-    # texto_descifrado = decrypt_aes(texto_cifrado, nonce, tag, clave)
-    # print("Texto descifrado:", texto_descifrado)
+    texto_descifrado = decrypt_aes(texto_cifrado, nonce, tag, clave)
+    print("Texto descifrado:", texto_descifrado)
 
 
     print("\n=== PRUEBA HASH ===")
@@ -165,9 +191,11 @@ if __name__ == "__main__":
     password = "Password123!"
 
     # Cuando implementen hash_password:
-    # pwd_data = hash_password(password)
-    # print("Hash generado:", pwd_data)
+    pwd_data = hash_password(password)
+    print("Hash generado:", pwd_data)
 
     # Cuando implementen verify_password:
-    # print("Verificación correcta:",
-    #       verify_password("Password123!", pwd_data))
+    print("Verificación correcta:",
+          verify_password("Password123!", pwd_data))
+    print("Verificación incorrecta:",
+          verify_password("WrongPassword", pwd_data))
