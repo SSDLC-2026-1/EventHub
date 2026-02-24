@@ -73,12 +73,13 @@ def register_failed_attempt(email: str):
     record = LOGIN_STATE.setdefault(email, {"attempts": 0, "lock_until": 0})
     record["attempts"] += 1
     if record["attempts"] >= MAX_ATTEMPTS:
+        print(f"Locking account {email} for {LOCK_TIME_SECONDS} seconds due to failed login attempts.")
         record["lock_until"] = time.time() + LOCK_TIME_SECONDS
         record["attempts"] = 0
 
 
 def register_successful_login(email: str):
-    if email in LOGIN_STATE:
+    if email in LOGIN_STATE and not is_account_locked(email)[0]:
         LOGIN_STATE[email] = {"attempts": 0, "lock_until": 0}
 
 # =============================

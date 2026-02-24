@@ -8,7 +8,12 @@ from flask import Flask, render_template, request, abort, url_for, redirect, ses
 from pathlib import Path
 import json
 
-from validation import validate_payment_form
+from validation import (
+    validate_payment_form,
+    is_account_locked,
+    register_failed_attempt,
+    register_successful_login,
+)
 
 app = Flask(__name__)
 app.config["TEMPLATES_AUTO_RELOAD"] = True
@@ -259,8 +264,23 @@ def login():
             form={"email": email},
         ), 400
 
+    # normalize email for lock checks and logging
+    email_norm = (email or "").strip().lower()
+
+    locked, seconds = is_account_locked(email_norm)
+    if locked:
+        # when locked, ignore any credentials and refuse login
+        return render_template(
+            "login.html",
+            error=f"Account locked. Try again in {seconds} seconds.",
+            field_errors={"email": " ", "password": " "},
+            form={"email": email},
+        ), 403
+
     user = find_user_by_email(email)
     if not user or user.get("password") != password:
+        # record failed attempt and possibly lock
+        register_failed_attempt(email_norm)
         return render_template(
             "login.html",
             error="Invalid credentials.",
@@ -268,6 +288,8 @@ def login():
             form={"email": email},
         ), 401
 
+    # successful authentication, reset login state
+    register_successful_login(email_norm)
     session["user_email"] = (user.get("email") or "").strip().lower()
 
     return redirect(url_for("dashboard"))
