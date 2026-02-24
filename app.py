@@ -13,6 +13,7 @@ from validation import (
     is_account_locked,
     register_failed_attempt,
     register_successful_login,
+    has_role
 )
 
 app = Flask(__name__)
@@ -330,7 +331,8 @@ def register():
 
 @app.get("/dashboard")
 def dashboard():
-
+    if not has_role(session.get("user_email"), "admin") or not has_role(session.get("user_email"), "user"):
+        abort(403)
 
     paid = request.args.get("paid") == "1"
     user = get_current_user()
@@ -338,8 +340,8 @@ def dashboard():
 
 @app.route("/checkout/<int:event_id>", methods=["GET", "POST"])
 def checkout(event_id: int):
-
-
+    if not has_role(session.get("user_email"), "admin") or not has_role(session.get("user_email"), "user"):
+        abort(403)
     events = load_events()
     event = next((e for e in events if e.id == event_id), None)
     if not event:
@@ -417,7 +419,8 @@ def checkout(event_id: int):
 
 @app.route("/profile", methods=["GET", "POST"])
 def profile():
- 
+    if not has_role(session.get("user_email"), "admin") or not has_role(session.get("user_email"), "user"):
+        abort(403)
 
     user = get_current_user()
     if not user:
@@ -467,7 +470,9 @@ def profile():
     )
 @app.get("/admin/users")
 def admin_users():
-
+    user = get_current_user()
+    if not has_role(user, "admin"):
+        abort(403)
     q = (request.args.get("q") or "").strip().lower()
     role = (request.args.get("role") or "all").strip().lower()
     status = (request.args.get("status") or "all").strip().lower()
