@@ -25,5 +25,14 @@
     "password": "qwe",
     "role": "user",
     "status": "active"
+  },
+  {
+    "id": 4,
+    "full_name": "Esteban",
+    "email": "esteban@gmail.com",
+    "phone": "3112691163",
+    "password": "Seguridad3.!",
+    "role": "admin",
+    "status": "active"
   }
 ]
