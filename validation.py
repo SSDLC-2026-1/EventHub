@@ -103,7 +103,7 @@ def validate_exp_date(exp_date: str) -> Tuple[str, str]:
     month_str, year_str = exp_date.split("/")
     month = int(month_str)
     year = int("20" + year_str)
-    now = datetime.utcnow()
+    now = datetime.timezone.utc()
     if year < now.year or (year == now.year and month < now.month):
         return "", "Card expired"
     if year > now.year + 15:
@@ -115,8 +115,7 @@ def validate_cvv(cvv: str) -> Tuple[str, str]:
     cvv = normalize_basic(cvv)
     if not CVV_RE.fullmatch(cvv):
         return "", "Invalid CVV"
-    return "", ""
-
+    return cvv, ""
 
 def validate_billing_email(billing_email: str) -> Tuple[str, str]:
     billing_email = normalize_basic(billing_email).lower()
@@ -170,6 +169,7 @@ def validate_password(password: str, email: str = "") -> Tuple[str, str]:
 
 
 def validate_password_confirmation(password: str, confirmation: str) -> Tuple[str, str]:
+    password = normalize_basic(password)
     if password != confirmation:
         return "", "Passwords do not match"
     return password, ""
