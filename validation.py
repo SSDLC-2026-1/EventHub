@@ -40,7 +40,8 @@ def normalize_basic(value: str) -> str:
     """
     Normalize input using NFKC and strip whitespace.
     """
-    return unicodedata.normalize("NFKC", (value or "")).strip()
+
+    return unicodedata.normalize("NFKC", (value or "")).strip().lower()
 
 
 def luhn_is_valid(number: str) -> bool:
