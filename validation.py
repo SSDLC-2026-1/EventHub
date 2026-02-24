@@ -211,7 +211,7 @@ def validate_role(role: str) -> Tuple[str, str]:
     return role, ""
 
 
-def has_role(user: Dict, required_role: str) -> bool:
+def has_role(user: dict, required_role: str) -> bool:
     if not user:
         return False
     role = (user.get("role") or "").lower()
