@@ -612,5 +612,15 @@ def admin_change_role(user_id: int):
     save_users(users)
     return redirect(url_for("admin_users"))
 
+@app.post("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("index"))
+
+@app.context_processor
+def inject_current_user():
+    return {"current_user": get_current_user()}
+
+
 if __name__ == "__main__":
     app.run(debug=True)
