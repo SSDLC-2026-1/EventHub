@@ -20,22 +20,12 @@ from datetime import datetime
 from typing import Tuple, Dict
 
 
-# =============================
-# Regular Patterns
-# =============================
-
-
 CARD_DIGITS_RE = re.compile(r"^\d+$")  #digits only
 CVV_RE = re.compile(r"^\d{3,4}$")      #3 or 4 digits
 EXP_RE = re.compile(r"^(0[1-9]|1[0-2])\/\d{2}$")   #MM/YY format
 EMAIL_BASIC_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")    # basic email structure
 NAME_ALLOWED_RE = re.compile(r"^[A-Za-zÀ-ÖØ-öø-ÿ' -]+$")   # allowed name characters
 
-
-
-# =============================
-# Utility Functions
-# =============================
 
 def normalize_basic(value: str) -> str:
     """
@@ -58,11 +48,6 @@ def luhn_is_valid(number: str) -> bool:
 
     return total % 10 == 0
 
-
-
-# =============================
-# Field Validations
-# =============================
 
 def validate_card_number(card_number: str) -> Tuple[str, str]:
     card = normalize_basic(card_number)
@@ -143,11 +128,6 @@ def validate_name_on_card(name_on_card: str) -> Tuple[str, str]:
 
     return name, ""
 
-
-
-# =============================
-# Orchestrator Function
-# =============================
 
 def validate_payment_form(
     card_number: str,
