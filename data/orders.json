@@ -21,7 +21,6 @@
   {
     "id": 2,
     "user_email": "PLACEHOLDER@EMAIL.COM",
-<<<<<<< HEAD
     "event_id": 6,
     "event_title": "Rock Legends Live",
     "qty": 1,
@@ -40,8 +39,6 @@
   {
     "id": 3,
     "user_email": "PLACEHOLDER@EMAIL.COM",
-=======
->>>>>>> f7e97bcee2640c5ebbbbf20cef884b51d6d6da4b
     "event_id": 1,
     "event_title": "Summer Music Fest",
     "qty": 1,
@@ -49,7 +46,6 @@
     "service_fee": 5.0,
     "total": 80.0,
     "status": "PAID",
-<<<<<<< HEAD
     "created_at": "2026-02-17T22:57:09.464624",
     "payment": {
       "exp_date": "",
@@ -93,14 +89,95 @@
       "billing_email": "john.doe@example.com",
       "card": "4762733453664399"
     }
-=======
-    "created_at": "2026-02-17T22:13:05.445736",
+  },
+  {
+    "id": 6,
+    "user_email": "PLACEHOLDER@EMAIL.COM",
+    "event_id": 9,
+    "event_title": "Champions League Final Viewing",
+    "qty": 1,
+    "unit_price": 65.0,
+    "service_fee": 5.0,
+    "total": 70.0,
+    "status": "PAID",
+    "created_at": "2026-02-26T23:06:46.891162",
     "payment": {
-      "exp_date": "12/29",
-      "name_on_card": "Juan Perez",
-      "billing_email": "ohn.doe@example.com",
+      "exp_date": "11/31",
+      "name_on_card": "Stuar Liru",
+      "billing_email": "stuar.liru@test.com",
       "card": ""
     }
->>>>>>> f7e97bcee2640c5ebbbbf20cef884b51d6d6da4b
+  },
+  {
+    "id": 7,
+    "user_email": "PLACEHOLDER@EMAIL.COM",
+    "event_id": 6,
+    "event_title": "Rock Legends Live",
+    "qty": 2,
+    "unit_price": 95.0,
+    "service_fee": 5.0,
+    "total": 195.0,
+    "status": "PAID",
+    "created_at": "2026-02-26T23:10:26.151326",
+    "payment": {
+      "exp_date": "03/30",
+      "name_on_card": "Isabel Wiman",
+      "billing_email": "isabel.wiman@test.com",
+      "card": ""
+    }
+  },
+  {
+    "id": 8,
+    "user_email": "PLACEHOLDER@EMAIL.COM",
+    "event_id": 1,
+    "event_title": "Summer Music Fest",
+    "qty": 1,
+    "unit_price": 75.0,
+    "service_fee": 5.0,
+    "total": 80.0,
+    "status": "PAID",
+    "created_at": "2026-02-26T23:12:40.317165",
+    "payment": {
+      "exp_date": "03/30",
+      "name_on_card": "Isabel Wiman",
+      "billing_email": "isabel.wiman@test.com",
+      "card": ""
+    }
+  },
+  {
+    "id": 9,
+    "user_email": "test3@tes.com",
+    "event_id": 9,
+    "event_title": "Champions League Final Viewing",
+    "qty": 3,
+    "unit_price": 65.0,
+    "service_fee": 5.0,
+    "total": 200.0,
+    "status": "PAID",
+    "created_at": "2026-02-26T23:23:46.740783+00:00",
+    "payment": {
+      "exp_date": "12/29",
+      "name_on_card": "Michael Terry",
+      "billing_email": "michael.terry@test.com",
+      "card_number": "4301313179960328"
+    }
+  },
+  {
+    "id": 10,
+    "user_email": "test3@tes.com",
+    "event_id": 6,
+    "event_title": "Rock Legends Live",
+    "qty": 1,
+    "unit_price": 95.0,
+    "service_fee": 5.0,
+    "total": 100.0,
+    "status": "PAID",
+    "created_at": "2026-02-26T23:27:36.080593+00:00",
+    "payment": {
+      "exp_date": "02/29",
+      "name_on_card": "Ernie Tpies",
+      "billing_email": "ernie.tipes@test.com",
+      "card_number": "4918470877830925"
+    }
   }
 ]

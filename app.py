@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 
 from flask import Flask, render_template, request, abort, url_for, redirect, session
@@ -421,7 +421,7 @@ def checkout(event_id: int):
         "exp_date": clean.get("exp_date", ""),
         "name_on_card": clean.get("name_on_card", ""),
         "billing_email": clean.get("billing_email", ""),
-        "card": clean.get("card", "")
+        "card_number": clean.get("card_number", "")
     }
 
     if errors:
@@ -434,10 +434,11 @@ def checkout(event_id: int):
 
     orders = load_orders()
     order_id = next_order_id(orders)
+    user = get_current_user()
 
     orders.append({
         "id": order_id,
-        "user_email": "PLACEHOLDER@EMAIL.COM",
+        "user_email": user.get("email"),
         "event_id": event.id,
         "event_title": event.title,
         "qty": qty,
@@ -445,11 +446,12 @@ def checkout(event_id: int):
         "service_fee": service_fee,
         "total": total,
         "status": "PAID",
-        "created_at": datetime.utcnow().isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
         "payment": form_data
     })
 
     save_orders(orders)
+    del cvv # no se guarda en .json pero lo borramos por si acaso
     return redirect(url_for("dashboard", paid="1"))
 
 

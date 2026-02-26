@@ -103,7 +103,7 @@ def validate_exp_date(exp_date: str) -> Tuple[str, str]:
     month_str, year_str = exp_date.split("/")
     month = int(month_str)
     year = int("20" + year_str)
-    now = datetime.timezone.utc()
+    now = datetime.astimezone(datetime.now()).date()
     if year < now.year or (year == now.year and month < now.month):
         return "", "Card expired"
     if year > now.year + 15:
@@ -273,3 +273,4 @@ def validate_payment_form(
         clean["billing_email"] = email_clean
 
     return clean, errors
+
