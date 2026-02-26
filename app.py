@@ -417,12 +417,16 @@ def checkout(event_id: int):
         billing_email=billing_email
     )
 
+    cn = clean.get("card_number", "")
+    last4 = cn[-4:] if cn else ""
+    masked_display = f"**** **** **** {last4}" if last4 else ""
+
     form_data = {
         "exp_date": clean.get("exp_date", ""),
         "name_on_card": clean.get("name_on_card", ""),
         "billing_email": clean.get("billing_email", ""),
-        "card_number": clean.get("card_number", "")
-    }
+        "card_number": masked_display,
+    }      
 
     if errors:
         return render_template(
