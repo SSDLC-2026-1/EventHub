@@ -7,6 +7,10 @@ from typing import List, Optional
 from flask import Flask, render_template, request, abort, url_for, redirect, session
 from pathlib import Path
 import json
+from time import time
+
+
+SESSION_TIMEOUT = 30 
 
 from validation import (
     validate_payment_form,
@@ -193,6 +197,21 @@ def _field_msg(field: str) -> str:
     }
     return msgs.get(field, "Campo inválido.")
 
+def is_session_expired():
+    login_at = session.get("login_at")
+    if not login_at:
+        return True
+    return (time() - login_at) > SESSION_TIMEOUT
+
+@app.before_request
+def enforce_session_timeout():
+    protected_paths = ("/dashboard", "/checkout", "/admin_users", "/profile", "/admin", )
+
+    if request.path.startswith(protected_paths):
+        if "user_email" not in session or is_session_expired():
+            session.clear()
+            return redirect(url_for("login"))
+
 
 @app.get("/")
 def index():
@@ -252,6 +271,8 @@ def buy_ticket(event_id: int):
     return redirect(url_for("checkout", event_id=event.id, qty=qty))
 
 
+from time import time
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "GET":
@@ -293,10 +314,13 @@ def login():
             form={"email": email_raw},
         ), 401
 
+    
     register_successful_login(email_clean)
-    session["user_email"] = email_clean
-    return redirect(url_for("dashboard"))
 
+    session["user_email"] = email_clean
+    session["login_at"] = time()   
+
+    return redirect(url_for("dashboard"))
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
