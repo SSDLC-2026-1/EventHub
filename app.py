@@ -1,14 +1,25 @@
 from __future__ import annotations
 
+from encryption import encrypt_aes
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional, Dict
+from functools import wraps
 
 from flask import Flask, render_template, request, abort, url_for, redirect, session
 from pathlib import Path
 import json
 
-from validation import validate_payment_form
+from validation import validate_name,validate_email,validate_mobile_number,validate_password
+
+import time
+
+MAX_ATTEMPTS = 2
+LOCK_TIME = 5 * 60 #Bloqueo de 5 minutos
+
+login_state = {}
+
+LLAVE_GLOBAL = b'SixteenByteKey!!' 
 
 app = Flask(__name__)
 app.config["TEMPLATES_AUTO_RELOAD"] = True
@@ -22,6 +33,24 @@ ORDERS_PATH = BASE_DIR / "data" / "orders.json"
 CATEGORIES = ["All", "Music", "Tech", "Sports", "Business"]
 CITIES = ["Any", "New York", "San Francisco", "Berlin", "London", "Oakland", "San Jose"]
 
+# BLOCK SESSION 
+def is_account_locked(email: str) -> bool:
+    state = login_state.get(email, {"attempts": 0, "locked_until": 0})
+    return state["locked_until"] > time.time()
+
+
+def register_failed_attempt(email: str) -> None:
+    state = login_state.get(email, {"attempts": 0, "locked_until": 0})
+    state["attempts"] += 1
+
+    if state["attempts"] >= MAX_ATTEMPTS:
+        state["locked_until"] = time.time() + LOCK_TIME
+
+    login_state[email] = state
+
+
+def reset_login_state(email: str) -> None:
+    login_state[email] = {"attempts": 0, "locked_until": 0}
 
 @dataclass(frozen=True)
 class Event:
@@ -50,6 +79,13 @@ def get_current_user() -> Optional[dict]:
         return None
     return find_user_by_email(email)
 
+def require_login(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if "user_email" not in session:
+            return redirect(url_for("login"))
+        return f(*args, **kwargs)
+    return decorated_function
 
 
 def load_events() -> List[Event]:
@@ -242,7 +278,30 @@ def login():
         return render_template("login.html", info_message=msg)
 
     email = request.form.get("email", "")
+    validated_email, err = validate_email(email)
+    if err:
+        return render_template(
+            "login.html",
+            error="Email is not in a valid format.",
+            field_errors={"email": err},
+            form={"email": email},
+        ), 400
+    else:
+        email = validated_email
+    
     password = request.form.get("password", "")
+
+    # Esto DEBERIA estar, pero las cuentas admin tienen passwords que no cumplen el formato (porque son "admin123" y "admin456" para facilitar la corrección del ejercicio). Si se valida el password acá, no se podría iniciar sesión con esas cuentas.
+    # validated_password, err = validate_password(password)
+    # if err:
+    #     return render_template(
+    #         "login.html",
+    #         error="Password is not in a valid format.",
+    #         field_errors={"password": err},
+    #         form={"email": email},
+    #     ), 400
+    # else:
+    #     password = validated_password
 
     field_errors = {}
 
@@ -258,17 +317,28 @@ def login():
             field_errors=field_errors,
             form={"email": email},
         ), 400
-
-    user = find_user_by_email(email)
+    email_norm = email.strip().lower()
+    # validar bloqueo por intentos fallidos
+    if is_account_locked(email_norm):
+        return render_template(
+            "login.html",
+            error="Account temporarily locked. Try again later.",
+            form={"email": email},
+        ), 403
+     
+    user = find_user_by_email(email_norm)
     if not user or user.get("password") != password:
+        register_failed_attempt(email_norm)
         return render_template(
             "login.html",
             error="Invalid credentials.",
             field_errors={"email": " ", "password": " "},
             form={"email": email},
         ), 401
+    reset_login_state(email_norm)
+    session["user_email"] = email_norm
 
-    session["user_email"] = (user.get("email") or "").strip().lower()
+    session["login_time"] = datetime.now(timezone.utc).timestamp()
 
     return redirect(url_for("dashboard"))
 
@@ -278,16 +348,74 @@ def register():
         return render_template("register.html")
 
     full_name = request.form.get("full_name", "")
+    validated_full_name, err = validate_name(full_name)
+    if err:
+        return render_template(
+            "register.html",
+            error="Name is not in a valid format.",
+            field_errors={"full_name": err},
+            form={"full_name": full_name},
+        ), 400
+    else:
+        full_name = validated_full_name
+    
     email = request.form.get("email", "")
+    validated_email, err = validate_email(email)
+    if err:
+        return render_template(
+            "register.html",
+            error="Email is not in a valid format.",
+            field_errors={"email": err},
+            form={"email": email},
+        ), 400
+    else:
+        email = validated_email
+    
     phone = request.form.get("phone", "")
+    validated_phone, err = validate_mobile_number(phone)
+    if err:
+        return render_template(
+            "register.html",
+            error="Phone number is not in a valid format.",
+            field_errors={"phone": err},
+            form={"phone": phone},
+        ), 400
+    else:        
+        phone = validated_phone
+
     password = request.form.get("password", "")
+    validated_password, err = validate_password(password)
+    if err:
+        return render_template(
+            "register.html",
+            error="Password is not in a valid format.",
+            field_errors={"password": err},
+            form={"full_name": full_name, "email": email, "phone": phone},
+        ), 400
+    else:
+        password = validated_password
+
     confirm_password = request.form.get("confirm_password", "")
+    if password != confirm_password:
+        return render_template(
+            "register.html",
+            error="Passwords do not match.",
+            form={"full_name": full_name, "email": email, "phone": phone},
+        ), 400
 
     if user_exists(email):
         return render_template(
             "register.html",
             error="This email is already registered. Try signing in."
         ), 400
+
+    t_cifrado, t_nonce, t_tag = encrypt_aes(phone, LLAVE_GLOBAL)
+    
+    phone_data = {
+        "encrypted_data": t_cifrado,
+        "nonce": t_nonce,
+        "tag": t_tag
+    }
 
     users = load_users()
     next_id = (max([u.get("id", 0) for u in users], default=0) + 1)
@@ -296,8 +424,8 @@ def register():
         "id": next_id,
         "full_name": full_name,
         "email": email,
-        "phone": phone,
-        "password": password,
+        "phone": phone_data, 
+        "password": password, 
         "role": "user",          
         "status": "active",
     })
@@ -307,6 +435,7 @@ def register():
     return redirect(url_for("login", registered="1"))
 
 @app.get("/dashboard")
+@require_login
 def dashboard():
 
 
@@ -315,9 +444,8 @@ def dashboard():
     return render_template("dashboard.html", user_name=(user.get("full_name") if user else "User"), paid=paid)
 
 @app.route("/checkout/<int:event_id>", methods=["GET", "POST"])
+@require_login
 def checkout(event_id: int):
-
-
     events = load_events()
     event = next((e for e in events if e.id == event_id), None)
     if not event:
@@ -355,11 +483,18 @@ def checkout(event_id: int):
         billing_email=billing_email
     )
 
+    e_cifrado, e_nonce, e_tag = encrypt_aes(billing_email, LLAVE_GLOBAL)
+    email_data_cifrada = {
+        "encrypted_data": e_cifrado,
+        "nonce": e_nonce,
+        "tag": e_tag
+    }
+
     form_data = {
         "exp_date": clean.get("exp_date", ""),
         "name_on_card": clean.get("name_on_card", ""),
-        "billing_email": clean.get("billing_email", ""),
-        "card": clean.get("card", "")
+        "billing_email": email_data_cifrada, 
+        "card": clean.get("card", "")        
     }
 
     if errors:
@@ -370,12 +505,17 @@ def checkout(event_id: int):
             errors=errors, form_data=form_data
         ), 400
 
+    
+    clean.get("card"," ")
     orders = load_orders()
     order_id = next_order_id(orders)
 
+    masked_card = "**** **** **** " + clean.get("card", "")[-4:] # Ultimos 4 numeros
+    clean = {} # Limpiar datos sensibles de la tarjeta
+
     orders.append({
         "id": order_id,
-        "user_email": "PLACEHOLDER@EMAIL.COM",
+        "user_email": session.get("user_email", "guest"),
         "event_id": event.id,
         "event_title": event.title,
         "qty": qty,
@@ -383,17 +523,16 @@ def checkout(event_id: int):
         "service_fee": service_fee,
         "total": total,
         "status": "PAID",
-        "created_at": datetime.utcnow().isoformat(),
-        "payment": form_data
+        "created_at": datetime.now(timezone.utc).timestamp().isoformat(),
+        "card_last_four": masked_card
     })
 
     save_orders(orders)
 
     return redirect(url_for("dashboard", paid="1"))
 
-
-
 @app.route("/profile", methods=["GET", "POST"])
+@require_login
 def profile():
  
 
@@ -413,12 +552,47 @@ def profile():
 
     if request.method == "POST":
         full_name = request.form.get("full_name", "")
+        validated_full_name, err = validate_name(full_name)
+        if err:
+            field_errors["full_name"] = "Name is not in a valid format."
+        else:
+            full_name = validated_full_name
+
         phone = request.form.get("phone", "")
+        validated_phone, err = validate_mobile_number(phone)    
+        if err:
+            field_errors["phone"] = "Phone number is not in a valid format."
+        else:             
+            phone = validated_phone
 
         current_password = request.form.get("current_password", "")
         new_password = request.form.get("new_password", "")
         confirm_new_password = request.form.get("confirm_new_password", "")
-
+        if new_password:
+            if not current_password:
+                field_errors["current_password"] = "Current password is required."
+            else:
+                validated_new_password, err = validate_password(new_password)
+                if err:
+                    field_errors["new_password"] = "Password is not in a valid format."
+                elif new_password != confirm_new_password:
+                    field_errors["confirm_new_password"] = "Passwords do not match."
+                elif current_password != user.get("password", ""):
+                    field_errors["current_password"] = "Current password is incorrect."
+                else:
+                    new_password = validated_new_password
+                    
+        print(field_errors)
+        if field_errors:
+            form["full_name"] = full_name
+            form["phone"] = phone
+            return render_template(
+                "profile.html",
+                form=form,
+                field_errors=field_errors,
+                success_message=None
+            ), 400
+        
         users = load_users()
         email_norm = (user.get("email") or "").strip().lower()
 
@@ -430,6 +604,8 @@ def profile():
                 if new_password:
                     u["password"] = new_password
                 break
+        
+        
 
         save_users(users)
 
@@ -445,6 +621,10 @@ def profile():
     )
 @app.get("/admin/users")
 def admin_users():
+
+    user = get_current_user()
+    if not user or user.get("role") != "admin":
+        abort(403)
 
     q = (request.args.get("q") or "").strip().lower()
     role = (request.args.get("role") or "all").strip().lower()
@@ -503,6 +683,32 @@ def admin_change_role(user_id: int):
             break
     save_users(users)
     return redirect(url_for("admin_users"))
+
+@app.post("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("index"))
+
+@app.context_processor
+def inject_current_user():
+    return {"current_user": get_current_user()}
+
+@app.before_request
+def check_session_expiration():
+    # Rutas públicas donde no aplica expiración
+    public_paths = ["/login", "/register", "/logout", "/static"]
+
+    if any(request.path.startswith(p) for p in public_paths):
+        return  # no verificar en rutas públicas
+
+    login_time = session.get("login_time")
+    if login_time:
+        elapsed = datetime.now(timezone.utc).timestamp() - login_time
+        if elapsed > 180:  # 3 minutos = 180 segundos
+            session.clear()
+            return redirect(url_for("login"))
+    # si no hay login_time, asumimos no hay sesión
+
 
 if __name__ == "__main__":
     app.run(debug=True)
