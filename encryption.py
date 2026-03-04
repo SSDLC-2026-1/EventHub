@@ -11,6 +11,7 @@ En este módulo deberás implementar:
 
 NO modificar la función encrypt_aes().
 """
+# Importamos las librerías necesarias para cifrado y hashing
 
 from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
@@ -62,14 +63,18 @@ def decrypt_aes(texto_cifrado_hex, nonce_hex, tag_hex, clave):
     """
 
     # TODO: Implementar conversión de hex a bytes
+    texto_cifrado = bytes.fromhex(texto_cifrado_hex)
+    nonce = bytes.fromhex(nonce_hex)
+    tag = bytes.fromhex(tag_hex)
 
     # TODO: Crear objeto AES con nonce
+    cipher = AES.new(clave, AES.MODE_EAX, nonce=nonce)
 
     # TODO: Usar decrypt_and_verify
+    texto_descifrado = cipher.decrypt_and_verify(texto_cifrado, tag)
 
     # TODO: Convertir resultado a string y retornar
-
-    pass
+    return texto_descifrado.decode()
 
 # ==========================================================
 # PASSWORD HASHING (PBKDF2 - SHA256)
@@ -101,12 +106,25 @@ def hash_password(password):
     """
 
     # TODO: Generar salt aleatoria
+    salt = os.urandom(16)
 
     # TODO: Derivar clave usando pbkdf2_hmac
+    iterations = 200000
+    hash_bytes = hashlib.pbkdf2_hmac(
+        'sha256',
+        password.encode(),
+        salt,
+        iterations,
+        dklen=32
+    )
 
     # TODO: Retornar diccionario con salt y hash en formato hex
-
-    pass
+    return {
+        "algorithm": "pbkdf2_sha256",
+        "iterations": iterations,
+        "salt": salt.hex(),
+        "hash": hash_bytes.hex()
+    }
 
 
 
@@ -133,12 +151,22 @@ def verify_password(password, stored_data):
     """
 
     # TODO: Extraer salt e iterations
+    salt_hex = stored_data["salt"]
+    iterations = stored_data["iterations"]
+    hash_hex = stored_data["hash"]
 
     # TODO: Recalcular hash
+    salt = bytes.fromhex(salt_hex)
+    hash_bytes = hashlib.pbkdf2_hmac(
+        'sha256',
+        password.encode(),
+        salt,
+        iterations,
+        dklen=32
+    )
 
     # TODO: Comparar con compare_digest
-
-    pass
+    return hmac.compare_digest(hash_bytes.hex(), hash_hex)
 
 
 
@@ -156,8 +184,8 @@ if __name__ == "__main__":
     print("Tag:", tag)
 
     # Cuando implementen decrypt_aes, esto debe funcionar
-    # texto_descifrado = decrypt_aes(texto_cifrado, nonce, tag, clave)
-    # print("Texto descifrado:", texto_descifrado)
+    texto_descifrado = decrypt_aes(texto_cifrado, nonce, tag, clave)
+    print("Texto descifrado:", texto_descifrado)
 
 
     print("\n=== PRUEBA HASH ===")
@@ -165,9 +193,9 @@ if __name__ == "__main__":
     password = "Password123!"
 
     # Cuando implementen hash_password:
-    # pwd_data = hash_password(password)
-    # print("Hash generado:", pwd_data)
+    pwd_data = hash_password(password)
+    print("Hash generado:", pwd_data)
 
     # Cuando implementen verify_password:
-    # print("Verificación correcta:",
-    #       verify_password("Password123!", pwd_data))
+    print("Verificación correcta:",
+          verify_password("Password123!", pwd_data))

@@ -18,6 +18,7 @@ import re
 import unicodedata
 from datetime import datetime
 from typing import Tuple, Dict
+from datetime import timezone
 
 
 # =============================
@@ -25,12 +26,13 @@ from typing import Tuple, Dict
 # =============================
 
 
-CARD_DIGITS_RE = re.compile(r"")     # digits only
-CVV_RE = re.compile(r"")             # 3 or 4 digits
-EXP_RE = re.compile(r"")             # MM/YY format
-EMAIL_BASIC_RE = re.compile(r"")     # basic email structure
-NAME_ALLOWED_RE = re.compile(r"")    # allowed name characters
-
+CARD_DIGITS_RE = re.compile(r"^[0-9_]{13,19}$")     # digits only
+CVV_RE = re.compile(r"^[0-9_]{3,4}")             # 3 or 4 digits
+EXP_RE = re.compile(r"^(0[1-9]|1[0-2])\/[0-9]{2}$")             # MM/YY format
+EMAIL_BASIC_RE = re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")     # basic email structure
+NAME_ALLOWED_RE = re.compile(r"^[A-Za-zÀ-ÖØ-öø-ÿ\s'\-]{2,60}$")    # allowed name characters
+MOBILE_RE = re.compile(r"^[0-9]{7,15}")
+PASSWORD_RE = re.compile(r"^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[.!@#$%^&*()\-_=\+\[\]{}<>?])[.A-Za-z\d!@#$%^&*()\-_=\+\[\]{}<>?]{8,64}$")
 
 # =============================
 # Utility Functions
@@ -38,7 +40,7 @@ NAME_ALLOWED_RE = re.compile(r"")    # allowed name characters
 
 def normalize_basic(value: str) -> str:
     """
-    Normalize input using NFKC and strip whitespace.
+    Normalize input using NFKC and strip whitespace. # Eh creo que este ya está hecho 
     """
     return unicodedata.normalize("NFKC", (value or "")).strip()
 
@@ -65,109 +67,105 @@ def luhn_is_valid(number: str) -> bool:
 # =============================
 
 def validate_card_number(card_number: str) -> Tuple[str, str]:
-    """
-    Validate credit card number.
+    # Normalize input
+    card_number = normalize_basic(card_number)
+    # Remove spaces and hyphens
+    card_number = card_number.replace(" ", "").replace("-", "")
+    # Validate digits only and length
+    ptrn = CARD_DIGITS_RE
+    if not ptrn.match(card_number):
+        return "", "Número de tarjeta inválido: debe contener solo dígitos y tener entre 13 y 19 caracteres."
 
-    Requirements:
-    - Normalize input
-    - Remove spaces and hyphens before validation
-    - Must contain digits only
-    - Length between 13 and 19 digits
-    - BONUS: Must pass Luhn algorithm
-
-    Input:
-        card_number (str)
-
-    Returns:
-        (card, error_message)
-
-    Notes:
-        - If invalid → return ("", "Error message")
-        - If valid → return (all credit card digits, "")
-    """
-    # TODO: Implement validation
-    return "", ""
-
+    return card_number, ""
 
 def validate_exp_date(exp_date: str) -> Tuple[str, str]:
-    """
-    Validate expiration date.
+    #Normalize input
+    exp_date = normalize_basic(exp_date)
+    # Format & Month validation
+    ptrn = EXP_RE
+    if not ptrn.match(exp_date):
+        return "", "Fecha de expiración inválida: formato debe ser MM/YY y mes entre 01 y 12."
+    # Expiration validation
+    try:
+        exp_month, exp_year = exp_date.split("/")
+        exp_year = int(exp_year)
+        now = datetime.now(timezone.utc)
+        current_year = int(str(now.year)[-2:])  # Get last two digits of current year
+        current_month = now.month
+        if (exp_year < current_year) or (exp_year == current_year and int(exp_month) < current_month):
+            return "", "La tarjeta ha expirado."
+        if exp_year > current_year + 15:
+            return "", "Fecha de expiración demasiado lejana."
+    except Exception:
+        return "", "Fecha de expiración inválida: formato debe ser MM/YY."
 
-    Requirements:
-    - Format must be MM/YY
-    - Month must be between 01 and 12
-    - Must not be expired compared to current UTC date
-    - Optional: limit to reasonable future (e.g., +15 years)
-
-    Input:
-        exp_date (str)
-
-    Returns:
-        (normalized_exp_date, error_message)
-    """
-    # TODO: Implement validation
-    return "", ""
-
+    return exp_date, ""
 
 def validate_cvv(cvv: str) -> Tuple[str, str]:
-    """
-    Validate CVV.
+    # Normalize input
+    cvv = normalize_basic(cvv)
+    # Digits and length validation
+    ptrn = CVV_RE
+    if not ptrn.match(cvv):
+        return "", "CVV inválido: debe contener solo dígitos y tener 3 o 4 caracteres."
 
-    Requirements:
-    - Must contain only digits
-    - Must be exactly 3 or 4 digits
-    - Should NOT return the CVV value for storage
-
-    Input:
-        cvv (str)
-
-    Returns:
-        ("", error_message)
-        (always return empty clean value for security reasons)
-    """
-    # TODO: Implement validation
-    return "", ""
+    return "", "" # CVV No retornado por seguridad
 
 
-def validate_billing_email(billing_email: str) -> Tuple[str, str]:
-    """
-    Validate billing email.
+def validate_email(billing_email: str) -> Tuple[str, str]:
+    # Normalize input
+    billing_email = normalize_basic(billing_email).lower()
+    # Length validation
+    if len(billing_email) > 254:
+        return "", "Correo electrónico inválido: debe tener máximo 254 caracteres."
+    # Basic email pattern validation
+    ptrn = EMAIL_BASIC_RE
+    if not ptrn.match(billing_email):
+        return "", "Correo electrónico inválido: formato incorrecto."
 
-    Requirements:
-    - Normalize (strip + lowercase)
-    - Max length 254
-    - Must match basic email pattern
-
-    Input:
-        billing_email (str)
-
-    Returns:
-        (normalized_email, error_message)
-    """
-    # TODO: Implement validation
-    return "", ""
+    return billing_email, ""
+    
 
 
-def validate_name_on_card(name_on_card: str) -> Tuple[str, str]:
-    """
-    Validate name on card.
+def validate_name(name_on_card: str) -> Tuple[str, str]:
+    # Normalize input
+    name_on_card = normalize_basic(name_on_card)
+    # Collapse multiple spaces
+    name_on_card = re.sub(r"\s+", " ", name_on_card).strip() #Reemplaza todo \s+ (uno o más espacios) por " " (un solo espacio)
+    # Length and character validation
+    ptrn = NAME_ALLOWED_RE
+    if not ptrn.match(name_on_card):
+        return "", "Nombre inválido: debe tener entre 2 y 60 caracteres y solo contener letras, espacios, apóstrofes o guiones."
+    
+    return name_on_card, ""
 
-    Requirements:
-    - Normalize input
-    - Collapse multiple spaces
-    - Length between 2 and 60 characters
-    - Only letters (including accents), spaces, apostrophes, hyphens
+def validate_mobile_number(mobile_number: str) -> Tuple[str, str]:
+    # Normalize input
+    mobile_number = normalize_basic(mobile_number)
+    # Collapse multiple spaces
+    mobile_number = re.sub(r"\s+", " ", mobile_number).strip()
+    # Length and pattern validation
+    ptrn = MOBILE_RE
+    if not ptrn.match(mobile_number):
+        return "", "Número inválido: debe tener entre 7 y 15 númers, sin identificador internacionales ni letras o caracteres especiales."
+    
+    return mobile_number, ""
 
-    Input:
-        name_on_card (str)
-
-    Returns:
-        (normalized_name, error_message)
-    """
-    # TODO: Implement validation
-    return "", ""
-
-
+def validate_password(password: str) -> Tuple[str, str]:
+    # Normalize input
+    password = normalize_basic(password)
+    # Length validation
+    if len(password) < 8 or len(password) > 64:
+        return "", "Contraseña inválida: debe tener entre 8 y 64 caracteres."
+    # No spaces
+    if ' ' in password:
+        return "", "Contraseña inválida: no debe contener espacios."
+    # Pattern validation (at least 1 upper, 1 lower, 1 digit, 1 special)
+    ptrn = PASSWORD_RE
+    if not ptrn.match(password):
+        return "", "Contraseña inválida: debe contener al menos una mayúscula, una minúscula, un número y un carácter especial."
+    
+    return password, ""
 # =============================
 # Orchestrator Function
 # =============================
@@ -204,14 +202,17 @@ def validate_payment_form(
     if err:
         errors["cvv"] = err
 
-    name_clean, err = validate_name_on_card(name_on_card)
+    name_clean, err = validate_name(name_on_card)
     if err:
         errors["name_on_card"] = err
     clean["name_on_card"] = name_clean
 
-    email_clean, err = validate_billing_email(billing_email)
+    email_clean, err = validate_email(billing_email)
     if err:
         errors["billing_email"] = err
     clean["billing_email"] = email_clean
 
     return clean, errors
+
+if __name__ == "__main__":
+    pass
