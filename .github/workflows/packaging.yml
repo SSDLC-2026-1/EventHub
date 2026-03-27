@@ -1,1 +1,63 @@
+name: Module Packaging Workflow
 
+on:
+  workflow_dispatch:
+    inputs:
+      module:
+        description: "Selecciona qué módulo empaquetar"
+        required: true
+        default: "full"
+        type: choice
+        options:
+          - frontend
+          - backend
+          - data
+          - full
+
+jobs:
+  build-package:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Obtener código
+        uses: actions/checkout@v4
+
+      - name: Preparar carpeta
+        run: mkdir output
+
+      - name: Seleccionar contenido
+        run: |
+          case "${{ github.event.inputs.module }}" in
+            frontend)
+              echo "Empaquetando frontend..."
+              cp -r templates output/ 2>/dev/null || true
+              cp -r static output/ 2>/dev/null || true
+              ;;
+            backend)
+              echo "Empaquetando backend..."
+              cp -r src output/ 2>/dev/null || true
+              cp *.py output/ 2>/dev/null || true
+              ;;
+            data)
+              echo "Empaquetando datos..."
+              cp -r data output/
+              ;;
+            full)
+              echo "Empaquetando todo..."
+              cp -r src templates static data output/ 2>/dev/null || true
+              cp *.py output/ 2>/dev/null || true
+              ;;
+            *)
+              echo "Opción inválida"
+              exit 1
+              ;;
+          esac
+
+      - name: Crear archivo comprimido
+        run: zip -r resultado.zip output/
+
+      - name: Publicar artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-result
+          path: resultado.zip
