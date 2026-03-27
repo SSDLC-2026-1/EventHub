@@ -1,1 +1,29 @@
+name: Branch Based Execution
 
+on:
+  push:
+
+jobs:
+  branch-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Inicio
+        run: echo "Workflow iniciado"
+
+      - name: Ejecución general
+        run: echo "Este paso se ejecuta en cualquier rama"
+
+      - name: Verificar rama actual
+        run: echo "Rama actual: $GITHUB_REF"
+
+      - name: Acción solo para main
+        if: contains(github.ref, 'main')
+        run: echo "Ejecutando tareas exclusivas de main"
+
+      - name: Validación final
+        run: echo "Proceso completado correctamente"
+
+      - name: Mensaje de cierre en main
+        if: contains(github.ref, 'main')
+        run: echo "Finalización especial para rama principal"
