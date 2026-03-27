@@ -1,0 +1,365 @@
+name: Validate Project Structure and JSON Files
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pycryptodome  # For encryption module validation
+    
+    - name: Check required files and directories
+      run: |
+        echo "Checking required files and directories..."
+        
+        # Define required files
+        required_files=(
+          "app.py"
+          "auth_validation.py"
+          "encryption.py"
+          "validation.py"
+          "requirements.txt"
+        )
+        
+        # Define required directories
+        required_dirs=(
+          "templates"
+          "static"
+        )
+        
+        # Define required template files
+        required_templates=(
+          "templates/base.html"
+          "templates/index.html"
+          "templates/event_detail.html"
+          "templates/checkout.html"
+          "templates/dashboard.html"
+          "templates/login.html"
+          "templates/register.html"
+          "templates/profile.html"
+          "templates/admin_users.html"
+          "templates/403.html"
+        )
+        
+        # Define required static files
+        required_static=(
+          "static/styles.css"
+          "static/admin_users.css"
+          "static/forbidden.css"
+          "static/profile.css"
+        )
+        
+        # Define required data files
+        required_data=(
+          "data/events.json"
+          "data/users.json"
+          "data/orders.json"
+        )
+        
+        # Check required files
+        echo ""
+        echo "Checking required root files..."
+        for file in "${required_files[@]}"; do
+          if [ -f "$file" ]; then
+            echo "$file exists"
+          else
+            echo "$file is missing"
+            exit 1
+          fi
+        done
+        
+        # Check required directories
+        echo ""
+        echo "Checking required directories..."
+        for dir in "${required_dirs[@]}"; do
+          if [ -d "$dir" ]; then
+            echo "$dir/ exists"
+          else
+            echo "$dir/ is missing"
+            exit 1
+          fi
+        done
+        
+        # Check required template files
+        echo ""
+        echo "Checking template files..."
+        for template in "${required_templates[@]}"; do
+          if [ -f "$template" ]; then
+            echo "$template exists"
+          else
+            echo "$template is missing"
+            exit 1
+          fi
+        done
+        
+        # Check required static files
+        echo ""
+        echo "Checking static files..."
+        for static in "${required_static[@]}"; do
+          if [ -f "$static" ]; then
+            echo "$static exists"
+          else
+            echo "$static is missing"
+            exit 1
+          fi
+        done
+        
+        # Check required data files (they should exist or be created)
+        echo ""
+        echo "Checking data files..."
+        for data_file in "${required_data[@]}"; do
+          if [ -f "$data_file" ]; then
+            echo "$data_file exists"
+          else
+            echo "$data_file doesn't exist (will be created at runtime)"
+          fi
+        done
+        
+        echo ""
+        echo "All required files and directories exist!"
+    
+    - name: Validate JSON files
+      run: |
+        echo "Validating JSON files..."
+        
+        # Find all JSON files in the project
+        json_files=$(find . -name "*.json" -not -path "*/\.*" -not -path "*/venv/*" -not -path "*/__pycache__/*" -not -path "*/node_modules/*")
+        
+        validation_failed=0
+        
+        if [ -z "$json_files" ]; then
+          echo "No JSON files found to validate"
+        else
+          for json_file in $json_files; do
+            echo "Validating: $json_file"
+            if python3 -c "import json; json.load(open('$json_file', encoding='utf-8'))" 2>/dev/null; then
+              echo "$json_file is valid JSON"
+            else
+              echo "$json_file contains invalid JSON"
+              validation_failed=1
+            fi
+          done
+        fi
+        
+        if [ $validation_failed -eq 1 ]; then
+          echo ""
+          echo "JSON validation failed for one or more files"
+          exit 1
+        else
+          echo ""
+          echo "All JSON files are valid!"
+        fi
+    
+    - name: Validate specific JSON files structure
+      run: |
+        echo "Validating specific JSON file structures..."
+        
+        # Validate events.json structure
+        if [ -f "data/events.json" ]; then
+          echo "Validating events.json structure..."
+          python3 << 'EOF'
+          import json
+          import sys
+          
+          try:
+              with open('data/events.json', 'r', encoding='utf-8') as f:
+                  events = json.load(f)
+              
+              required_fields = ['id', 'title', 'category', 'city', 'venue', 'start', 'end', 'price_usd', 'available_tickets']
+              
+              for i, event in enumerate(events):
+                  for field in required_fields:
+                      if field not in event:
+                          print(f"Event {i} (id: {event.get('id', 'unknown')}) missing field: {field}")
+                          sys.exit(1)
+              
+              print(f"events.json has valid structure with {len(events)} events")
+          except Exception as e:
+              print(f"Error validating events.json: {e}")
+              sys.exit(1)
+          EOF
+        else
+          echo "events.json not found, skipping structure validation"
+        fi
+        
+        # Validate users.json structure
+        if [ -f "data/users.json" ]; then
+          echo "Validating users.json structure..."
+          python3 << 'EOF'
+          import json
+          import sys
+          
+          try:
+              with open('data/users.json', 'r', encoding='utf-8') as f:
+                  users = json.load(f)
+              
+              required_fields = ['id', 'full_name', 'email']
+              optional_fields = ['role', 'status', 'password_data', 'phone_encrypted']
+              
+              for i, user in enumerate(users):
+                  for field in required_fields:
+                      if field not in user:
+                          print(f"User {i} (id: {user.get('id', 'unknown')}) missing field: {field}")
+                          sys.exit(1)
+                  
+                  # Check if either password_data or password exists (for legacy support)
+                  if 'password_data' not in user and 'password' not in user:
+                      print(f"User {i} (id: {user.get('id', 'unknown')}) missing password data")
+                      sys.exit(1)
+              
+              print(f"users.json has valid structure with {len(users)} users")
+          except Exception as e:
+              print(f"Error validating users.json: {e}")
+              sys.exit(1)
+          EOF
+        else
+          echo "users.json not found, skipping structure validation"
+        fi
+        
+        # Validate orders.json structure
+        if [ -f "data/orders.json" ]; then
+          echo "Validating orders.json structure..."
+          python3 << 'EOF'
+          import json
+          import sys
+          
+          try:
+              with open('data/orders.json', 'r', encoding='utf-8') as f:
+                  orders = json.load(f)
+              
+              required_fields = ['id', 'user_email', 'event_id', 'event_title', 'qty', 'unit_price', 'total', 'status']
+              
+              for i, order in enumerate(orders):
+                  for field in required_fields:
+                      if field not in order:
+                          print(f"Order {i} (id: {order.get('id', 'unknown')}) missing field: {field}")
+                          sys.exit(1)
+              
+              print(f"orders.json has valid structure with {len(orders)} orders")
+          except Exception as e:
+              print(f"Error validating orders.json: {e}")
+              sys.exit(1)
+          EOF
+        else
+          echo "orders.json not found, skipping structure validation"
+        fi
+    
+    - name: Validate Python imports
+      run: |
+        echo "Validating Python module imports..."
+        
+        python3 << 'EOF'
+        import sys
+        import importlib
+        
+        modules_to_check = [
+            'flask',
+            'Crypto',
+            'Crypto.Cipher',
+            'Crypto.Random'
+        ]
+        
+        failed_modules = []
+        
+        for module in modules_to_check:
+            try:
+                importlib.import_module(module)
+                print(f"{module} can be imported")
+            except ImportError as e:
+                print(f"Cannot import {module}: {e}")
+                failed_modules.append(module)
+        
+        if failed_modules:
+            print(f"\nFailed to import modules: {failed_modules}")
+            sys.exit(1)
+        else:
+            print("\nAll required modules can be imported")
+        EOF
+    
+    - name: Check Python syntax
+      run: |
+        echo "Checking Python syntax..."
+        
+        python_files=$(find . -name "*.py" -not -path "*/\.*" -not -path "*/venv/*" -not -path "*/__pycache__/*")
+        
+        syntax_failed=0
+        
+        for py_file in $python_files; do
+          if python3 -m py_compile "$py_file" 2>/dev/null; then
+            echo "$py_file has valid syntax"
+          else
+            echo "$py_file has syntax errors"
+            python3 -m py_compile "$py_file"
+            syntax_failed=1
+          fi
+        done
+        
+        if [ $syntax_failed -eq 1 ]; then
+          echo ""
+          echo "Python syntax validation failed"
+          exit 1
+        else
+          echo ""
+          echo "All Python files have valid syntax!"
+        fi
+    
+    - name: Check Flask application structure
+      run: |
+        echo "Checking Flask application structure..."
+        
+        # Check if app.py can be imported
+        python3 << 'EOF'
+        import sys
+        import importlib.util
+        
+        spec = importlib.util.spec_from_file_location("app_module", "app.py")
+        if spec and spec.loader:
+            try:
+                module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(module)
+                print("app.py can be loaded as a module")
+                
+                # Check for Flask app instance
+                if hasattr(module, 'app'):
+                    print("Flask app instance found in app.py")
+                else:
+                    print("No 'app' variable found in app.py, but might be using blueprint pattern")
+            except Exception as e:
+                print(f"Error loading app.py: {e}")
+                sys.exit(1)
+        else:
+            print("Cannot load app.py")
+            sys.exit(1)
+        EOF
+    
+    - name: Final validation summary
+      run: |
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "PROJECT VALIDATION COMPLETED SUCCESSFULLY"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo ""
+        echo "Summary:"
+        echo "  Required files and directories exist"
+        echo "  JSON files are valid"
+        echo "  Python syntax is correct"
+        echo "  Required modules can be imported"
+        echo "  Flask application structure is valid"
+        echo ""
+        echo "The project meets all validation requirements!"
