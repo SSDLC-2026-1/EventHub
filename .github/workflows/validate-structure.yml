@@ -1,1 +1,31 @@
+name: Validate Project Structure
 
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Check required files and folders
+        run: |
+          echo "Verificando estructura del proyecto..."
+
+          [ -f app.py ] || (echo "Falta app.py" && exit 1)
+          [ -f requirements.txt ] || (echo "Falta requirements.txt" && exit 1)
+
+          [ -d templates ] || (echo "Falta carpeta templates/" && exit 1)
+          [ -d static ] || (echo "Falta carpeta static/" && exit 1)
+          [ -d data ] || (echo "Falta carpeta data/" && exit 1)
+      - name: Validate JSON files
+        run: |
+          echo "Validando archivos JSON..."
+
+          for file in $(find . -name "*.json"); do
+            echo "Revisando $file"
+            python -m json.tool "$file" > /dev/null || (echo "Error en $file" && exit 1)
+          done
